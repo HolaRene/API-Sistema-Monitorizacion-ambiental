@@ -1,18 +1,68 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { getDb } from "./config/db";
+import pool from "./config/db";
 import sensorsRoutes from "./routes/web/sensors.routes";
 import  errorMiddleware from "./middlewares/error.middleware";
-import { PORT } from "./config/env";
+import { API_KEYS, PORT } from "./config/env";
+import sensorsRoutesSp32 from "./routes/backend/sensoresSp32.routes";
+import { extractClientIp } from "./shared/network";
 
 const app = express();
 
+app.set("trust proxy", true);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+
+    res.status(200).json({
+      status: "ok",
+      service: "api",
+      database: "up",
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      ip: extractClientIp(req),
+      api: API_KEYS ? "✓ API Keys Loaded" : "✗ API Keys Missing",
+    });
+  } catch {
+    res.status(503).json({
+      status: "degraded",
+      service: "api",
+      database: "down",
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      ip: extractClientIp(req),
+      
+    });
+  }
+});
+
+export const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
+  const apiKey = req.header('x-api-key');
+
+  console.log(`Received request from IP: ${extractClientIp(req)}, API Key: ${apiKey}`);
+  
+  if (!apiKey || apiKey !== API_KEYS) {
+    res.status(401).json({
+      success: false,
+      message: "Invalid or missing API key.",
+    });
+    return;
+  }
+  
+  next();
+};
+
+app.use("/api/v1/esp32", validateApiKey);
 
 
 //Usar rutas para la web
 app.use("/api/v1/sensors", sensorsRoutes);
 // Usar rutas para la api a esp32
+app.use("/api/v1/esp32/sensors", sensorsRoutesSp32);
 
 // Ruta de prueba
 app.get("/", (req, res) => {
