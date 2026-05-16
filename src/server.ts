@@ -8,6 +8,9 @@ import sensorsRoutesSp32 from "./routes/backend/sensoresSp32.routes";
 import authRoutes from "./routes/auth/auth.routes";
 import usersRoutes from "./routes/users/users.routes";
 import { extractClientIp } from "./shared/network";
+import salasRoutes from "./routes/web/salas.routes";
+import tiposSensoresRoutes from "./routes/web/tiposSensores.routes";
+import actuadoresRoutes from "./routes/web/actuadores.routes";
 
 const app = express();
 
@@ -37,7 +40,7 @@ app.get("/health", async (req, res) => {
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
       ip: extractClientIp(req),
-      
+      api: API_KEYS ? "✓ API Keys Loaded" : "✗ API Keys Missing",
     });
   }
 });
@@ -66,6 +69,9 @@ app.use("/api/v1/esp32", validateApiKey);
 app.use("/api/v1/sensors", sensorsRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", usersRoutes);
+app.use("/api/v1/salas", salasRoutes);
+app.use("/api/v1/tipos-sensores", tiposSensoresRoutes);
+app.use("/api/v1/actuadores", actuadoresRoutes);
 // Usar rutas para la api a esp32
 app.use("/api/v1/esp32/sensors", sensorsRoutesSp32);
 
