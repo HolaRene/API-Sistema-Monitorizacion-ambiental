@@ -5,6 +5,8 @@ import sensorsRoutes from "./routes/web/sensors.routes";
 import  errorMiddleware from "./middlewares/error.middleware";
 import { API_KEYS, PORT } from "./config/env";
 import sensorsRoutesSp32 from "./routes/backend/sensoresSp32.routes";
+import authRoutes from "./routes/auth/auth.routes";
+import usersRoutes from "./routes/users/users.routes";
 import { extractClientIp } from "./shared/network";
 
 const app = express();
@@ -13,7 +15,7 @@ app.set("trust proxy", true);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+// Ruta de salud para monitoreo y diagnóstico
 app.get("/health", async (req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -40,6 +42,7 @@ app.get("/health", async (req, res) => {
   }
 });
 
+// Middleware para validar API Key en rutas protegidas
 export const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.header('x-api-key');
 
@@ -61,6 +64,8 @@ app.use("/api/v1/esp32", validateApiKey);
 
 //Usar rutas para la web
 app.use("/api/v1/sensors", sensorsRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/users", usersRoutes);
 // Usar rutas para la api a esp32
 app.use("/api/v1/esp32/sensors", sensorsRoutesSp32);
 
