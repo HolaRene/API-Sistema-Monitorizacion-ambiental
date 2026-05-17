@@ -48,7 +48,6 @@ app.get("/health", async (req, res) => {
 export const validateApiKey = (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.header('x-api-key');
 
-  console.log(`Received request from IP: ${extractClientIp(req)}, API Key: ${apiKey}`);
   
   if (!apiKey || apiKey !== API_KEYS) {
     res.status(401).json({
