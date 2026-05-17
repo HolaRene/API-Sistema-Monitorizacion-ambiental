@@ -2,15 +2,13 @@ import { createHmac } from "node:crypto";
 import bcrypt from "bcryptjs";
 import pool from "../config/db";
 import { asegurarEsquemaInicializado } from "../database/inicializar-esquema";
-
-type RolUsuario = "admin" | "operador" | "visor";
+import type { RolUsuario } from "./autorizacion.service";
 
 type DatosRegistroUsuario = {
     nombres: string;
     apellidos: string;
     email: string;
     password: string;
-    rol?: RolUsuario;
 };
 
 type DatosInicioSesion = {
@@ -175,6 +173,12 @@ export const registrarUsuarioServicio = async (
 ): Promise<RespuestaAutenticacion> => {
     await asegurarEsquemaInicializado();
 
+    const datosConRol = datos as DatosRegistroUsuario & { rol?: unknown };
+
+    if (datosConRol.rol !== undefined) {
+        throw crearErrorHttp("No puedes elegir el rol durante el registro.", 400);
+    }
+
     const usuarioExistente = await obtenerUsuarioPorEmail(datos.email);
 
     if (usuarioExistente) {
@@ -193,7 +197,7 @@ export const registrarUsuarioServicio = async (
             datos.apellidos.trim(),
             datos.email,
             passwordHash,
-            datos.rol ?? "operador",
+            "user",
         ],
     );
 

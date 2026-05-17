@@ -2,8 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import {
     actualizarTipoSensorServicio,
-    crearTipoSensorServicio,
-    eliminarTipoSensorServicio,
+    crearTipoSensorComoUsuarioServicio,
+    eliminarTipoSensorComoUsuarioServicio,
     obtenerTipoSensorPorIdServicio,
 } from "../../services/tiposSensores.service";
 
@@ -48,6 +48,15 @@ export const crearTipoSensorControlador = async (
     res: Response,
     next: NextFunction,
 ): Promise<Response | void> => {
+    const usuarioAutenticado = req.usuarioAutenticado;
+
+    if (!usuarioAutenticado) {
+        return res.status(401).json({
+            success: false,
+            message: "Debes iniciar sesion para crear recursos.",
+        });
+    }
+
     const validacion = esquemaCrearTipoSensor.safeParse(req.body);
 
     if (!validacion.success) {
@@ -58,7 +67,7 @@ export const crearTipoSensorControlador = async (
     }
 
     try {
-        const tipoSensor = await crearTipoSensorServicio(validacion.data);
+        const tipoSensor = await crearTipoSensorComoUsuarioServicio(validacion.data, usuarioAutenticado);
 
         return res.status(201).json({
             success: true,
@@ -137,6 +146,15 @@ export const eliminarTipoSensorControlador = async (
     res: Response,
     next: NextFunction,
 ): Promise<Response | void> => {
+    const usuarioAutenticado = req.usuarioAutenticado;
+
+    if (!usuarioAutenticado) {
+        return res.status(401).json({
+            success: false,
+            message: "Debes iniciar sesion para eliminar recursos.",
+        });
+    }
+
     const validacionId = esquemaIdTipoSensor.safeParse(req.params);
 
     if (!validacionId.success) {
@@ -147,7 +165,7 @@ export const eliminarTipoSensorControlador = async (
     }
 
     try {
-        await eliminarTipoSensorServicio(validacionId.data.id);
+        await eliminarTipoSensorComoUsuarioServicio(validacionId.data.id, usuarioAutenticado);
 
         return res.status(200).json({
             success: true,

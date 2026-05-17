@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   apellidos VARCHAR(120) NOT NULL,
   email VARCHAR(180) NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  rol VARCHAR(30) NOT NULL DEFAULT 'operador' CHECK (rol IN ('admin', 'operador', 'visor')),
+  rol VARCHAR(30) NOT NULL DEFAULT 'user' CHECK (rol IN ('admin', 'user')),
   esta_activo BOOLEAN NOT NULL DEFAULT TRUE,
   ultimo_acceso_en TIMESTAMPTZ,
   creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),

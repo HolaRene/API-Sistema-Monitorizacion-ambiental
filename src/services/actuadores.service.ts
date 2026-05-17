@@ -1,4 +1,10 @@
 import pool from "../config/db";
+import { asegurarEsquemaInicializado } from "../database/inicializar-esquema";
+import {
+    construirRestriccionPropietario,
+    type ContextoAutorizacion,
+    validarResultadoEliminacion,
+} from "./autorizacion.service";
 
 type TipoActuador = "led" | "buzzer" | "ventilador";
 
@@ -70,10 +76,12 @@ const crearErrorHttp = (mensaje: string, estado: number): Error & { status: numb
 export const crearActuadorServicio = async (
     datos: DatosCrearActuador,
 ): Promise<ActuadorCreado> => {
+    await asegurarEsquemaInicializado();
+
     const resultado = await pool.query<FilaActuadorCreado>(
         `
-            INSERT INTO actuadores (codigo, tipo_actuador, sala_id, nodo_red_id, pin, modelo, esta_activo)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO actuadores (codigo, tipo_actuador, sala_id, nodo_red_id, pin, modelo, esta_activo, creado_por_usuario_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING actuador_id, codigo, tipo_actuador, sala_id, nodo_red_id, pin, modelo, esta_activo, creado_en, actualizado_en
         `,
         [
@@ -84,6 +92,7 @@ export const crearActuadorServicio = async (
             datos.pin?.trim() || null,
             datos.modelo?.trim() || null,
             datos.estaActivo ?? true,
+            null,
         ],
     );
 
@@ -99,6 +108,8 @@ export const crearActuadorServicio = async (
 export const obtenerActuadorPorIdServicio = async (
     actuadorId: number,
 ): Promise<ActuadorCreado> => {
+    await asegurarEsquemaInicializado();
+
     const resultado = await pool.query<FilaActuadorCreado>(
         `
             SELECT actuador_id, codigo, tipo_actuador, sala_id, nodo_red_id, pin, modelo, esta_activo, creado_en, actualizado_en
@@ -122,6 +133,8 @@ export const actualizarActuadorServicio = async (
     actuadorId: number,
     datos: DatosActualizarActuador,
 ): Promise<ActuadorCreado> => {
+    await asegurarEsquemaInicializado();
+
     const columnas: string[] = [];
     const valores: Array<string | number | boolean | null> = [];
 
@@ -179,7 +192,42 @@ export const actualizarActuadorServicio = async (
     return mapearActuadorCreado(fila);
 };
 
+export const crearActuadorComoUsuarioServicio = async (
+    datos: DatosCrearActuador,
+    contexto: ContextoAutorizacion,
+): Promise<ActuadorCreado> => {
+    await asegurarEsquemaInicializado();
+
+    const resultado = await pool.query<FilaActuadorCreado>(
+        `
+            INSERT INTO actuadores (codigo, tipo_actuador, sala_id, nodo_red_id, pin, modelo, esta_activo, creado_por_usuario_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING actuador_id, codigo, tipo_actuador, sala_id, nodo_red_id, pin, modelo, esta_activo, creado_en, actualizado_en
+        `,
+        [
+            datos.codigo.trim(),
+            datos.tipoActuador,
+            datos.salaId ?? null,
+            datos.nodoRedId ?? null,
+            datos.pin?.trim() || null,
+            datos.modelo?.trim() || null,
+            datos.estaActivo ?? true,
+            contexto.usuarioId,
+        ],
+    );
+
+    const fila = resultado.rows[0];
+
+    if (!fila) {
+        throw new Error("No fue posible crear el actuador.");
+    }
+
+    return mapearActuadorCreado(fila);
+};
+
 export const eliminarActuadorServicio = async (actuadorId: number): Promise<void> => {
+    await asegurarEsquemaInicializado();
+
     const resultado = await pool.query<{ actuador_id: number }>(
         `
             DELETE FROM actuadores
@@ -192,4 +240,28 @@ export const eliminarActuadorServicio = async (actuadorId: number): Promise<void
     if (!resultado.rows[0]) {
         throw crearErrorHttp("El actuador no existe.", 404);
     }
+};
+
+export const eliminarActuadorComoUsuarioServicio = async (
+    actuadorId: number,
+    contexto: ContextoAutorizacion,
+): Promise<void> => {
+    await asegurarEsquemaInicializado();
+
+    const restriccion = construirRestriccionPropietario(contexto, "creado_por_usuario_id", 2);
+    const resultado = await pool.query<{ actuador_id: number }>(
+        `
+            DELETE FROM actuadores
+            WHERE actuador_id = $1${restriccion.clausulaSql}
+            RETURNING actuador_id
+        `,
+        [actuadorId, ...restriccion.valores],
+    );
+
+    validarResultadoEliminacion(
+        resultado.rows[0],
+        contexto,
+        "El actuador no existe.",
+        "No puedes eliminar un actuador creado por otro usuario.",
+    );
 };

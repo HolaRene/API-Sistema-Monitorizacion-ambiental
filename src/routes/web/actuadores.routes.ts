@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { autenticarUsuario } from "../../middlewares/auth.middleware";
 import {
 	actualizarActuadorControlador,
 	crearActuadorControlador,
@@ -8,9 +9,9 @@ import {
 
 const actuadoresRoutes = Router();
 
-actuadoresRoutes.post("/", crearActuadorControlador);
+actuadoresRoutes.post("/", autenticarUsuario, crearActuadorControlador);
 actuadoresRoutes.get("/:id", obtenerActuadorPorIdControlador);
-actuadoresRoutes.put("/:id", actualizarActuadorControlador);
-actuadoresRoutes.delete("/:id", eliminarActuadorControlador);
+actuadoresRoutes.put("/:id", autenticarUsuario, actualizarActuadorControlador);
+actuadoresRoutes.delete("/:id", autenticarUsuario, eliminarActuadorControlador);
 
 export default actuadoresRoutes;

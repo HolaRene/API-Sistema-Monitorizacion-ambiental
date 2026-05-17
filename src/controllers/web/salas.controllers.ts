@@ -2,8 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import {
     actualizarSalaServicio,
-    crearSalaServicio,
-    eliminarSalaServicio,
+    crearSalaComoUsuarioServicio,
+    eliminarSalaComoUsuarioServicio,
     obtenerSalaPorIdServicio,
 } from "../../services/salas.service";
 
@@ -46,6 +46,15 @@ export const crearSalaControlador = async (
     res: Response,
     next: NextFunction,
 ): Promise<Response | void> => {
+    const usuarioAutenticado = req.usuarioAutenticado;
+
+    if (!usuarioAutenticado) {
+        return res.status(401).json({
+            success: false,
+            message: "Debes iniciar sesion para crear recursos.",
+        });
+    }
+
     const validacion = esquemaCrearSala.safeParse(req.body);
 
     if (!validacion.success) {
@@ -56,7 +65,7 @@ export const crearSalaControlador = async (
     }
 
     try {
-        const sala = await crearSalaServicio(validacion.data);
+        const sala = await crearSalaComoUsuarioServicio(validacion.data, usuarioAutenticado);
 
         return res.status(201).json({
             success: true,
@@ -135,6 +144,15 @@ export const eliminarSalaControlador = async (
     res: Response,
     next: NextFunction,
 ): Promise<Response | void> => {
+    const usuarioAutenticado = req.usuarioAutenticado;
+
+    if (!usuarioAutenticado) {
+        return res.status(401).json({
+            success: false,
+            message: "Debes iniciar sesion para eliminar recursos.",
+        });
+    }
+
     const validacionId = esquemaIdSala.safeParse(req.params);
 
     if (!validacionId.success) {
@@ -145,7 +163,7 @@ export const eliminarSalaControlador = async (
     }
 
     try {
-        await eliminarSalaServicio(validacionId.data.id);
+        await eliminarSalaComoUsuarioServicio(validacionId.data.id, usuarioAutenticado);
 
         return res.status(200).json({
             success: true,

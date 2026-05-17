@@ -7,8 +7,7 @@ const esquemaRegistroUsuario = z.object({
     apellidos: z.string().trim().min(1, "Los apellidos son obligatorios."),
     email: z.email("Debes proporcionar un correo valido.").transform((valor) => valor.trim().toLowerCase()),
     password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
-    rol: z.enum(["admin", "operador", "visor"]).optional(),
-});
+}).strict();
 
 const esquemaInicioSesion = z.object({
     email: z.email("Debes proporcionar un correo valido.").transform((valor) => valor.trim().toLowerCase()),
@@ -29,7 +28,6 @@ export const registrarUsuarioControlador = async (
                 nombres: req.body.nombres,
                 apellidos: req.body.apellidos,
                 email: req.body.email,
-                rol: req.body.rol,
                 password: req.body.password ? "********" : undefined,
             },
             message: validacion.error.issues[0]?.message ?? "Datos de registro invalidos.",

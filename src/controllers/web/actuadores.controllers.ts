@@ -2,8 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import {
     actualizarActuadorServicio,
-    crearActuadorServicio,
-    eliminarActuadorServicio,
+    crearActuadorComoUsuarioServicio,
+    eliminarActuadorComoUsuarioServicio,
     obtenerActuadorPorIdServicio,
 } from "../../services/actuadores.service";
 
@@ -54,6 +54,15 @@ export const crearActuadorControlador = async (
     res: Response,
     next: NextFunction,
 ): Promise<Response | void> => {
+    const usuarioAutenticado = req.usuarioAutenticado;
+
+    if (!usuarioAutenticado) {
+        return res.status(401).json({
+            success: false,
+            message: "Debes iniciar sesion para crear recursos.",
+        });
+    }
+
     const validacion = esquemaCrearActuador.safeParse(req.body);
 
     if (!validacion.success) {
@@ -64,7 +73,7 @@ export const crearActuadorControlador = async (
     }
 
     try {
-        const actuador = await crearActuadorServicio(validacion.data);
+        const actuador = await crearActuadorComoUsuarioServicio(validacion.data, usuarioAutenticado);
 
         return res.status(201).json({
             success: true,
@@ -143,6 +152,15 @@ export const eliminarActuadorControlador = async (
     res: Response,
     next: NextFunction,
 ): Promise<Response | void> => {
+    const usuarioAutenticado = req.usuarioAutenticado;
+
+    if (!usuarioAutenticado) {
+        return res.status(401).json({
+            success: false,
+            message: "Debes iniciar sesion para eliminar recursos.",
+        });
+    }
+
     const validacionId = esquemaIdActuador.safeParse(req.params);
 
     if (!validacionId.success) {
@@ -153,7 +171,7 @@ export const eliminarActuadorControlador = async (
     }
 
     try {
-        await eliminarActuadorServicio(validacionId.data.id);
+        await eliminarActuadorComoUsuarioServicio(validacionId.data.id, usuarioAutenticado);
 
         return res.status(200).json({
             success: true,

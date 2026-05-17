@@ -30,7 +30,6 @@ app.get("/health", async (req, res) => {
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
       ip: extractClientIp(req),
-      api: API_KEYS ? "✓ API Keys Loaded" : "✗ API Keys Missing",
     });
   } catch {
     res.status(503).json({
@@ -40,7 +39,6 @@ app.get("/health", async (req, res) => {
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
       ip: extractClientIp(req),
-      api: API_KEYS ? "✓ API Keys Loaded" : "✗ API Keys Missing",
     });
   }
 });

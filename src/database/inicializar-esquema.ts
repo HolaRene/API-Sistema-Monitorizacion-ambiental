@@ -1,16 +1,25 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import pool from "../config/db";
 
 let promesaInicializacion: Promise<void> | null = null;
 
-const cargarEsquemaSql = async (): Promise<string> => {
-    const rutaEsquema = new URL("./001_esquema_iot.sql", import.meta.url);
-    return readFile(rutaEsquema, "utf-8");
+const obtenerArchivosSql = async (): Promise<string[]> => {
+    const rutaDirectorio = new URL("./", import.meta.url);
+    const nombresArchivos = await readdir(rutaDirectorio, { encoding: "utf-8" });
+
+    return nombresArchivos
+        .filter((nombreArchivo) => /^\d+_.*\.sql$/i.test(nombreArchivo))
+        .sort((archivoA, archivoB) => archivoA.localeCompare(archivoB));
 };
 
 const ejecutarInicializacion = async (): Promise<void> => {
-    const esquemaSql = await cargarEsquemaSql();
-    await pool.query(esquemaSql);
+    const archivosSql = await obtenerArchivosSql();
+
+    for (const archivoSql of archivosSql) {
+        const rutaArchivo = new URL(`./${archivoSql}`, import.meta.url);
+        const contenidoSql = await readFile(rutaArchivo, "utf-8");
+        await pool.query(contenidoSql);
+    }
 };
 
 export const asegurarEsquemaInicializado = async (): Promise<void> => {

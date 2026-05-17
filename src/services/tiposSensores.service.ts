@@ -1,4 +1,10 @@
 import pool from "../config/db";
+import { asegurarEsquemaInicializado } from "../database/inicializar-esquema";
+import {
+    construirRestriccionPropietario,
+    type ContextoAutorizacion,
+    validarResultadoEliminacion,
+} from "./autorizacion.service";
 
 type DatosCrearTipoSensor = {
     codigo: string;
@@ -58,10 +64,12 @@ const crearErrorHttp = (mensaje: string, estado: number): Error & { status: numb
 export const crearTipoSensorServicio = async (
     datos: DatosCrearTipoSensor,
 ): Promise<TipoSensorCreado> => {
+    await asegurarEsquemaInicializado();
+
     const resultado = await pool.query<FilaTipoSensorCreado>(
         `
-            INSERT INTO tipo_sensores (codigo, nombre, categoria, unidad_medida, descripcion)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO tipo_sensores (codigo, nombre, categoria, unidad_medida, descripcion, creado_por_usuario_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING tipo_sensor_id, codigo, nombre, categoria, unidad_medida, descripcion, creado_en, actualizado_en
         `,
         [
@@ -70,6 +78,7 @@ export const crearTipoSensorServicio = async (
             datos.categoria.trim(),
             datos.unidadMedida.trim(),
             datos.descripcion?.trim() || null,
+            null,
         ],
     );
 
@@ -85,6 +94,8 @@ export const crearTipoSensorServicio = async (
 export const obtenerTipoSensorPorIdServicio = async (
     tipoSensorId: number,
 ): Promise<TipoSensorCreado> => {
+    await asegurarEsquemaInicializado();
+
     const resultado = await pool.query<FilaTipoSensorCreado>(
         `
             SELECT tipo_sensor_id, codigo, nombre, categoria, unidad_medida, descripcion, creado_en, actualizado_en
@@ -108,6 +119,8 @@ export const actualizarTipoSensorServicio = async (
     tipoSensorId: number,
     datos: DatosActualizarTipoSensor,
 ): Promise<TipoSensorCreado> => {
+    await asegurarEsquemaInicializado();
+
     const columnas: string[] = [];
     const valores: Array<string | null> = [];
 
@@ -155,7 +168,40 @@ export const actualizarTipoSensorServicio = async (
     return mapearTipoSensorCreado(fila);
 };
 
+export const crearTipoSensorComoUsuarioServicio = async (
+    datos: DatosCrearTipoSensor,
+    contexto: ContextoAutorizacion,
+): Promise<TipoSensorCreado> => {
+    await asegurarEsquemaInicializado();
+
+    const resultado = await pool.query<FilaTipoSensorCreado>(
+        `
+            INSERT INTO tipo_sensores (codigo, nombre, categoria, unidad_medida, descripcion, creado_por_usuario_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING tipo_sensor_id, codigo, nombre, categoria, unidad_medida, descripcion, creado_en, actualizado_en
+        `,
+        [
+            datos.codigo.trim(),
+            datos.nombre.trim(),
+            datos.categoria.trim(),
+            datos.unidadMedida.trim(),
+            datos.descripcion?.trim() || null,
+            contexto.usuarioId,
+        ],
+    );
+
+    const fila = resultado.rows[0];
+
+    if (!fila) {
+        throw new Error("No fue posible crear el tipo de sensor.");
+    }
+
+    return mapearTipoSensorCreado(fila);
+};
+
 export const eliminarTipoSensorServicio = async (tipoSensorId: number): Promise<void> => {
+    await asegurarEsquemaInicializado();
+
     const resultado = await pool.query<{ tipo_sensor_id: number }>(
         `
             DELETE FROM tipo_sensores
@@ -168,4 +214,28 @@ export const eliminarTipoSensorServicio = async (tipoSensorId: number): Promise<
     if (!resultado.rows[0]) {
         throw crearErrorHttp("El tipo de sensor no existe.", 404);
     }
+};
+
+export const eliminarTipoSensorComoUsuarioServicio = async (
+    tipoSensorId: number,
+    contexto: ContextoAutorizacion,
+): Promise<void> => {
+    await asegurarEsquemaInicializado();
+
+    const restriccion = construirRestriccionPropietario(contexto, "creado_por_usuario_id", 2);
+    const resultado = await pool.query<{ tipo_sensor_id: number }>(
+        `
+            DELETE FROM tipo_sensores
+            WHERE tipo_sensor_id = $1${restriccion.clausulaSql}
+            RETURNING tipo_sensor_id
+        `,
+        [tipoSensorId, ...restriccion.valores],
+    );
+
+    validarResultadoEliminacion(
+        resultado.rows[0],
+        contexto,
+        "El tipo de sensor no existe.",
+        "No puedes eliminar un tipo de sensor creado por otro usuario.",
+    );
 };

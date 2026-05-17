@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { autenticarUsuario } from "../../middlewares/auth.middleware";
 import {
 	actualizarSalaControlador,
 	crearSalaControlador,
@@ -8,9 +9,9 @@ import {
 
 const salasRoutes = Router();
 
-salasRoutes.post("/", crearSalaControlador);
+salasRoutes.post("/", autenticarUsuario, crearSalaControlador);
 salasRoutes.get("/:id", obtenerSalaPorIdControlador);
-salasRoutes.put("/:id", actualizarSalaControlador);
-salasRoutes.delete("/:id", eliminarSalaControlador);
+salasRoutes.put("/:id", autenticarUsuario, actualizarSalaControlador);
+salasRoutes.delete("/:id", autenticarUsuario, eliminarSalaControlador);
 
 export default salasRoutes;

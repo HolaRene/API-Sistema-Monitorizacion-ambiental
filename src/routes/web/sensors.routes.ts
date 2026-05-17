@@ -1,14 +1,15 @@
 import { Router } from "express";
+import { autenticarUsuario } from "../../middlewares/auth.middleware";
 import { crearSensor, eliminarSensor, obtenerSensores, obtenerSensorPorId } from "../../controllers/web/sensors.controllers";
 
 const sensorsRoutes = Router();
 
-sensorsRoutes.post("/",crearSensor);
+sensorsRoutes.post("/", autenticarUsuario, crearSensor);
 
 sensorsRoutes.get("/", obtenerSensores);
 
 sensorsRoutes.get("/:id", obtenerSensorPorId);
 
-sensorsRoutes.delete("/:id", eliminarSensor);
+sensorsRoutes.delete("/:id", autenticarUsuario, eliminarSensor);
 
 export default sensorsRoutes;
