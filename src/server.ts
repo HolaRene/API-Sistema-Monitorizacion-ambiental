@@ -11,6 +11,7 @@ import { extractClientIp } from "./shared/network";
 import salasRoutes from "./routes/web/salas.routes";
 import tiposSensoresRoutes from "./routes/web/tiposSensores.routes";
 import actuadoresRoutes from "./routes/web/actuadores.routes";
+import nodosRedRoutes from "./routes/web/nodosRed.routes";
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use("/api/v1/users", usersRoutes);
 app.use("/api/v1/salas", salasRoutes);
 app.use("/api/v1/tipos-sensores", tiposSensoresRoutes);
 app.use("/api/v1/actuadores", actuadoresRoutes);
+app.use("/api/v1/nodos-red", nodosRedRoutes);
 // Usar rutas para la api a esp32
 app.use("/api/v1/esp32/sensors", sensorsRoutesSp32);
 
