@@ -3,7 +3,7 @@ import { iniciarSesionControlador, registrarUsuarioControlador } from "../../con
 
 const authRoutes = Router();
 
-authRoutes.post("/login", iniciarSesionControlador);
+authRoutes.post("/iniciar-sesion", iniciarSesionControlador);
 authRoutes.post("/registro", registrarUsuarioControlador);
 
 export default authRoutes;
